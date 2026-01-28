@@ -1,0 +1,34 @@
+{
+  "name": "h2bc-web-api-dev",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  "mounts": [
+    "type=bind,source=${localWorkspaceFolder},target=/workspace",
+    "source=${localEnv:SSH_AUTH_SOCK},target=/ssh-agent.sock,type=bind"
+  ],
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "username": "node"
+    }
+  },
+  "remoteEnv": {
+    "SSH_AUTH_SOCK": "/ssh-agent.sock"
+  },
+  "postCreateCommand": "npm run predeploy",
+  "forwardPorts": [9000],
+  "runServices": ["db", "redis"],
+  "shutdownAction": "stopCompose",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "openai.chatgpt",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "ms-ossdata.vscode-pgsql",
+        "github.vscode-github-actions"
+      ]
+    }
+  },
+  "remoteUser": "node"
+}

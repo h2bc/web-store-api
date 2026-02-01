@@ -5,7 +5,8 @@
   "workspaceFolder": "/workspace",
   "mounts": [
     "type=bind,source=${localWorkspaceFolder},target=/workspace",
-    "source=${localEnv:SSH_AUTH_SOCK},target=/ssh-agent.sock,type=bind"
+    "source=${localEnv:SSH_AUTH_SOCK},target=/ssh-agent.sock,type=bind",
+    "type=bind,source=${localEnv:HOME}/.codex-shared,target=/codex"
   ],
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {
@@ -13,7 +14,8 @@
     }
   },
   "remoteEnv": {
-    "SSH_AUTH_SOCK": "/ssh-agent.sock"
+    "SSH_AUTH_SOCK": "/ssh-agent.sock",
+    "CODEX_HOME": "/codex"
   },
   "postCreateCommand": "npm run predeploy",
   "forwardPorts": [9000],

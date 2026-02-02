@@ -16,7 +16,10 @@ import {
   linkSalesChannelsToApiKeyWorkflow,
   linkSalesChannelsToStockLocationWorkflow,
   updateStoresWorkflow,
+  uploadFilesWorkflow,
 } from "@medusajs/medusa/core-flows";
+import fs from "fs/promises";
+import path from "path";
 
 export default async function seedDemoData({ container }: ExecArgs) {
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER);
@@ -27,8 +30,25 @@ export default async function seedDemoData({ container }: ExecArgs) {
   const salesChannelService = container.resolve(Modules.SALES_CHANNEL);
   const storeService = container.resolve(Modules.STORE);
 
-  const img = (p: string) =>
-    `${process.env.S3_ENDPOINT}/${process.env.S3_BUCKET}/${p}`;
+  const assetsDir = path.join(process.cwd(), "assets");
+  const uploadAsset = async (relativePath: string) => {
+    const filePath = path.join(assetsDir, relativePath);
+    const [{ url }] = (
+      await uploadFilesWorkflow(container).run({
+        input: {
+          files: [
+            {
+              filename: path.basename(filePath),
+              mimeType: "image/png",
+              content: (await fs.readFile(filePath)).toString("base64"),
+              access: "public",
+            },
+          ],
+        },
+      })
+    ).result;
+    return url;
+  };
 
   const restOfEurope = [
     "at",
@@ -231,6 +251,32 @@ export default async function seedDemoData({ container }: ExecArgs) {
   const beanies = categories.find((c) => c.handle === "bean")!.id;
   const belts = categories.find((c) => c.handle === "belts")!.id;
 
+  logger.info("Upload assets");
+  const assetUrls = {
+    meduzaTeeFront: await uploadAsset(
+      "meduza tee/meduza-tee-front.png",
+    ),
+    meduzaTeeBack: await uploadAsset("meduza tee/meduza-tee-back.png"),
+    meduzaHoodFront: await uploadAsset(
+      "meduza hoodie/meduza-hood-front.png",
+    ),
+    meduzaHoodBack: await uploadAsset(
+      "meduza hoodie/meduza-hood-back.png",
+    ),
+    trainerShortsFront: await uploadAsset(
+      "training shorts/trainer-shorts-front-blank.png",
+    ),
+    trainerShortsBack: await uploadAsset(
+      "training shorts/trainer-shorts-back-blank.png",
+    ),
+    h2bcBeanieFront: await uploadAsset(
+      "h2bc beanie/h2bc-beanie-front.png",
+    ),
+    studdedBeltFront: await uploadAsset(
+      "studded belt/studded-belt-front.png",
+    ),
+  };
+
   logger.info("Products");
   await createProductsWorkflow(container).run({
     input: {
@@ -242,8 +288,8 @@ export default async function seedDemoData({ container }: ExecArgs) {
           shipping_profile_id: shippingProfile.id,
           status: ProductStatus.PUBLISHED,
           images: [
-            { url: img("meduza-tee-front-01K79W00WGHGG9FZSEYS8RFH0S.png") },
-            { url: img("meduza-tee-back-01K79W00WDKKW31PQ4CZY3E8BC.png") },
+            { url: assetUrls.meduzaTeeFront },
+            { url: assetUrls.meduzaTeeBack },
           ],
           options: [{ title: "Size", values: ["S", "M", "L", "XL"] }],
           variants: ["S", "M", "L", "XL"].map((s) => ({
@@ -265,8 +311,8 @@ export default async function seedDemoData({ container }: ExecArgs) {
           shipping_profile_id: shippingProfile.id,
           status: ProductStatus.PUBLISHED,
           images: [
-            { url: img("meduza-hood-front-01K79W1FA63QZREESPB1Y6TSRK.png") },
-            { url: img("meduza-hood-back-01K79W1FA8E19QBH1MZR0BZT1Y.png") },
+            { url: assetUrls.meduzaHoodFront },
+            { url: assetUrls.meduzaHoodBack },
           ],
           options: [{ title: "Size", values: ["S", "M", "L", "XL"] }],
           variants: ["S", "M", "L", "XL"].map((s) => ({
@@ -288,16 +334,8 @@ export default async function seedDemoData({ container }: ExecArgs) {
           shipping_profile_id: shippingProfile.id,
           status: ProductStatus.PUBLISHED,
           images: [
-            {
-              url: img(
-                "trainer-shorts-front-blank-01K79W4CVXD2KKNGYX7VPEJR2X.png",
-              ),
-            },
-            {
-              url: img(
-                "trainer-shorts-back-blank-01K79W4CVYVW8CGYWME13S710M.png",
-              ),
-            },
+            { url: assetUrls.trainerShortsFront },
+            { url: assetUrls.trainerShortsBack },
           ],
           options: [{ title: "Size", values: ["S", "M", "L", "XL"] }],
           variants: ["S", "M", "L", "XL"].map((s) => ({
@@ -319,7 +357,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
           shipping_profile_id: shippingProfile.id,
           status: ProductStatus.PUBLISHED,
           images: [
-            { url: img("h2bc-beanie-front-01K79W567XT5NPK28208QHQ6XV.png") },
+            { url: assetUrls.h2bcBeanieFront },
           ],
           options: [{ title: "Size", values: ["ONESIZE"] }],
           variants: [
@@ -342,7 +380,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
           shipping_profile_id: shippingProfile.id,
           status: ProductStatus.PUBLISHED,
           images: [
-            { url: img("studded-belt-front-01K79W6Y590E9R0DKMMQTR4KPB.png") },
+            { url: assetUrls.studdedBeltFront },
           ],
           options: [{ title: "Size", values: ["ONESIZE"] }],
           variants: [

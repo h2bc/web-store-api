@@ -124,6 +124,13 @@ export default async function seedDemoData({ container }: ExecArgs) {
   const ltRegion = regions.find((r) => r.name === "Lithuania")!;
   const euRegion = regions.find((r) => r.name === "Rest of Europe")!;
 
+  await updateStoresWorkflow(container).run({
+    input: {
+      selector: { id: store.id },
+      update: { default_region_id: ltRegion.id },
+    },
+  });
+
   logger.info("Stock location");
   const { result: locations } = await createStockLocationsWorkflow(
     container,
@@ -278,127 +285,132 @@ export default async function seedDemoData({ container }: ExecArgs) {
   };
 
   logger.info("Products");
-  await createProductsWorkflow(container).run({
-    input: {
-      products: [
+  const products = [
+    {
+      title: "STUDDED PU$$Y BELT",
+      handle: "cat-studded-belt",
+      category_ids: [belts],
+      shipping_profile_id: shippingProfile.id,
+      status: ProductStatus.PUBLISHED,
+      images: [
+        { url: assetUrls.studdedBeltFront },
+      ],
+      options: [{ title: "Size", values: ["ONESIZE"] }],
+      variants: [
         {
-          title: "MEDUZA TEE",
-          handle: "meduza-tee",
-          category_ids: [pod],
-          shipping_profile_id: shippingProfile.id,
-          status: ProductStatus.PUBLISHED,
-          images: [
-            { url: assetUrls.meduzaTeeFront },
-            { url: assetUrls.meduzaTeeBack },
+          title: "ONESIZE",
+          sku: "cat-studded-belt",
+          options: { Size: "ONESIZE" },
+          prices: [
+            { amount: 80, currency_code: "eur" },
+            { amount: 95, currency_code: "usd" },
           ],
-          options: [{ title: "Size", values: ["S", "M", "L", "XL"] }],
-          variants: ["S", "M", "L", "XL"].map((s) => ({
-            title: s,
-            sku: `meduza-tee-${s.toLowerCase()}`,
-            options: { Size: s },
-            manage_inventory: false,
-            prices: [
-              { amount: 25, currency_code: "eur" },
-              { amount: 30, currency_code: "usd" },
-            ],
-          })),
-          sales_channels: [{ id: salesChannel.id }],
-        },
-        {
-          title: "MEDUZA HOOD",
-          handle: "meduza-hood",
-          category_ids: [pod],
-          shipping_profile_id: shippingProfile.id,
-          status: ProductStatus.PUBLISHED,
-          images: [
-            { url: assetUrls.meduzaHoodFront },
-            { url: assetUrls.meduzaHoodBack },
-          ],
-          options: [{ title: "Size", values: ["S", "M", "L", "XL"] }],
-          variants: ["S", "M", "L", "XL"].map((s) => ({
-            title: s,
-            sku: `meduza-hood-${s.toLowerCase()}`,
-            options: { Size: s },
-            manage_inventory: false,
-            prices: [
-              { amount: 60, currency_code: "eur" },
-              { amount: 70, currency_code: "usd" },
-            ],
-          })),
-          sales_channels: [{ id: salesChannel.id }],
-        },
-        {
-          title: "TRAINER SHORTS",
-          handle: "trainer-shorts",
-          category_ids: [pod],
-          shipping_profile_id: shippingProfile.id,
-          status: ProductStatus.PUBLISHED,
-          images: [
-            { url: assetUrls.trainerShortsFront },
-            { url: assetUrls.trainerShortsBack },
-          ],
-          options: [{ title: "Size", values: ["S", "M", "L", "XL"] }],
-          variants: ["S", "M", "L", "XL"].map((s) => ({
-            title: s,
-            sku: `trainer-shorts-${s.toLowerCase()}`,
-            options: { Size: s },
-            manage_inventory: false,
-            prices: [
-              { amount: 45, currency_code: "eur" },
-              { amount: 55, currency_code: "usd" },
-            ],
-          })),
-          sales_channels: [{ id: salesChannel.id }],
-        },
-        {
-          title: "H2BC BEANIE",
-          handle: "h2bc-beanie",
-          category_ids: [beanies],
-          shipping_profile_id: shippingProfile.id,
-          status: ProductStatus.PUBLISHED,
-          images: [
-            { url: assetUrls.h2bcBeanieFront },
-          ],
-          options: [{ title: "Size", values: ["ONESIZE"] }],
-          variants: [
-            {
-              title: "ONESIZE",
-              sku: "h2bc-beanie",
-              options: { Size: "ONESIZE" },
-              prices: [
-                { amount: 25, currency_code: "eur" },
-                { amount: 30, currency_code: "usd" },
-              ],
-            },
-          ],
-          sales_channels: [{ id: salesChannel.id }],
-        },
-        {
-          title: "STUDDED PU$$Y BELT",
-          handle: "cat-studded-belt",
-          category_ids: [belts],
-          shipping_profile_id: shippingProfile.id,
-          status: ProductStatus.PUBLISHED,
-          images: [
-            { url: assetUrls.studdedBeltFront },
-          ],
-          options: [{ title: "Size", values: ["ONESIZE"] }],
-          variants: [
-            {
-              title: "ONESIZE",
-              sku: "cat-studded-belt",
-              options: { Size: "ONESIZE" },
-              prices: [
-                { amount: 80, currency_code: "eur" },
-                { amount: 95, currency_code: "usd" },
-              ],
-            },
-          ],
-          sales_channels: [{ id: salesChannel.id }],
         },
       ],
+      sales_channels: [{ id: salesChannel.id }],
     },
-  });
+    {
+      title: "TRAINER SHORTS",
+      handle: "trainer-shorts",
+      category_ids: [pod],
+      shipping_profile_id: shippingProfile.id,
+      status: ProductStatus.PUBLISHED,
+      images: [
+        { url: assetUrls.trainerShortsFront },
+        { url: assetUrls.trainerShortsBack },
+      ],
+      options: [{ title: "Size", values: ["S", "M", "L", "XL"] }],
+      variants: ["S", "M", "L", "XL"].map((s, index) => ({
+        title: s,
+        sku: `trainer-shorts-${s.toLowerCase()}`,
+        options: { Size: s },
+        variant_rank: index,
+        manage_inventory: false,
+        prices: [
+          { amount: 45, currency_code: "eur" },
+          { amount: 55, currency_code: "usd" },
+        ],
+      })),
+      sales_channels: [{ id: salesChannel.id }],
+    },
+    {
+      title: "H2BC BEANIE",
+      handle: "h2bc-beanie",
+      category_ids: [beanies],
+      shipping_profile_id: shippingProfile.id,
+      status: ProductStatus.PUBLISHED,
+      images: [
+        { url: assetUrls.h2bcBeanieFront },
+      ],
+      options: [{ title: "Size", values: ["ONESIZE"] }],
+      variants: [
+        {
+          title: "ONESIZE",
+          sku: "h2bc-beanie",
+          options: { Size: "ONESIZE" },
+          prices: [
+            { amount: 25, currency_code: "eur" },
+            { amount: 30, currency_code: "usd" },
+          ],
+        },
+      ],
+      sales_channels: [{ id: salesChannel.id }],
+    },
+    {
+      title: "MEDUZA HOOD",
+      handle: "meduza-hood",
+      category_ids: [pod],
+      shipping_profile_id: shippingProfile.id,
+      status: ProductStatus.PUBLISHED,
+      images: [
+        { url: assetUrls.meduzaHoodFront },
+        { url: assetUrls.meduzaHoodBack },
+      ],
+      options: [{ title: "Size", values: ["S", "M", "L", "XL"] }],
+      variants: ["S", "M", "L", "XL"].map((s, index) => ({
+        title: s,
+        sku: `meduza-hood-${s.toLowerCase()}`,
+        options: { Size: s },
+        variant_rank: index,
+        manage_inventory: false,
+        prices: [
+          { amount: 60, currency_code: "eur" },
+          { amount: 70, currency_code: "usd" },
+        ],
+      })),
+      sales_channels: [{ id: salesChannel.id }],
+    },
+    {
+      title: "MEDUZA TEE",
+      handle: "meduza-tee",
+      category_ids: [pod],
+      shipping_profile_id: shippingProfile.id,
+      status: ProductStatus.PUBLISHED,
+      images: [
+        { url: assetUrls.meduzaTeeFront },
+        { url: assetUrls.meduzaTeeBack },
+      ],
+      options: [{ title: "Size", values: ["S", "M", "L", "XL"] }],
+      variants: ["S", "M", "L", "XL"].map((s, index) => ({
+        title: s,
+        sku: `meduza-tee-${s.toLowerCase()}`,
+        options: { Size: s },
+        variant_rank: index,
+        manage_inventory: false,
+        prices: [
+          { amount: 25, currency_code: "eur" },
+          { amount: 30, currency_code: "usd" },
+        ],
+      })),
+      sales_channels: [{ id: salesChannel.id }],
+    },
+  ];
+
+  for (const product of products) {
+    await createProductsWorkflow(container).run({
+      input: { products: [product] },
+    });
+  }
 
   logger.info("Inventory");
   const inventoryBySku: Record<string, number> = {

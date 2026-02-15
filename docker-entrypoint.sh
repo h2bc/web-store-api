@@ -3,7 +3,7 @@ set -e
 
 if [ "${SKIP_PREDEPLOY:-false}" != "true" ] && [ "${MEDUSA_WORKER_MODE}" != "worker" ]; then
   echo "Running predeploy step..."
-  npm run predeploy
+  pnpm predeploy
 fi
 
-exec npm run start
+exec pnpm start

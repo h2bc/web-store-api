@@ -1,5 +1,8 @@
 
-FROM node:20-slim AS build-base
+FROM node:25-slim AS pnpm-base
+RUN npm i -g pnpm@10
+
+FROM pnpm-base AS build-base
 WORKDIR /app
 RUN apt-get update \
   && apt-get install -y --no-install-recommends python3 build-essential \
@@ -7,21 +10,21 @@ RUN apt-get update \
 
 FROM build-base AS deps
 ENV NODE_ENV=development
-COPY package.json package-lock.json ./
-RUN npm ci
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm i --frozen
 
 FROM deps AS builder
 COPY . .
-RUN npm run build
+RUN pnpm build
 
 FROM build-base AS server_deps
 ENV NODE_ENV=production
 WORKDIR /app
-COPY --from=builder /app/.medusa/server/package.json ./
-COPY --from=builder /app/.medusa/server/package-lock.json ./
-RUN npm ci --omit=dev && npm cache clean --force
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/pnpm-lock.yaml ./
+RUN pnpm i --frozen --prod
 
-FROM node:20-slim AS runtime-base
+FROM pnpm-base AS runtime-base
 ENV NODE_ENV=production
 WORKDIR /app
 RUN apt-get update \

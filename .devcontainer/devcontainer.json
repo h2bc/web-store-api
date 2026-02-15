@@ -11,13 +11,16 @@
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {
       "username": "node"
+    },
+    "ghcr.io/devcontainers-extra/features/pnpm:2": {
+      "version": "10"
     }
   },
   "remoteEnv": {
     "SSH_AUTH_SOCK": "/ssh-agent.sock",
     "CODEX_HOME": "/codex"
   },
-  "postCreateCommand": "npm run predeploy",
+  "postCreateCommand": "pnpm i --frozen && pnpm predeploy",
   "forwardPorts": [9000],
   "runServices": ["db", "redis"],
   "shutdownAction": "stopCompose",

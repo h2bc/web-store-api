@@ -5,7 +5,6 @@ import {
   ProductStatus,
 } from "@medusajs/framework/utils";
 import {
-  createApiKeysWorkflow,
   createInventoryLevelsWorkflow,
   createProductCategoriesWorkflow,
   createProductsWorkflow,
@@ -78,7 +77,6 @@ export default async function seedDemoData({ container }: ExecArgs) {
     "es",
     "se",
   ];
-  const shippingCountries = ["lt", ...restOfEurope];
 
   logger.info("Store + Sales Channel");
   const [store] = await storeService.listStores();
@@ -182,8 +180,17 @@ export default async function seedDemoData({ container }: ExecArgs) {
       type: "shipping",
       service_zones: [
         {
-          name: "Europe",
-          geo_zones: shippingCountries.map((c) => ({
+          name: "Lithuania",
+          geo_zones: [
+            {
+              type: "country" as const,
+              country_code: "lt",
+            },
+          ],
+        },
+        {
+          name: "Rest of Europe",
+          geo_zones: restOfEurope.map((c) => ({
             type: "country" as const,
             country_code: c,
           })),
@@ -191,6 +198,17 @@ export default async function seedDemoData({ container }: ExecArgs) {
       ],
     },
   ]);
+
+  const ltServiceZone = fulfillmentSet.service_zones.find(
+    (zone) => zone.name === "Lithuania",
+  );
+  const euServiceZone = fulfillmentSet.service_zones.find(
+    (zone) => zone.name === "Rest of Europe",
+  );
+
+  if (!ltServiceZone || !euServiceZone) {
+    throw new Error("Failed to create shipping service zones");
+  }
 
   await link.create({
     [Modules.STOCK_LOCATION]: { stock_location_id: stockLocation.id },
@@ -200,17 +218,47 @@ export default async function seedDemoData({ container }: ExecArgs) {
   await createShippingOptionsWorkflow(container).run({
     input: [
       {
-        name: "Standard Shipping",
+        name: "Standard Shipping LT",
         price_type: "flat",
         provider_id: "manual_manual",
-        service_zone_id: fulfillmentSet.service_zones[0].id,
+        service_zone_id: ltServiceZone.id,
         shipping_profile_id: shippingProfile.id,
-        type: { label: "Standard", description: "2–3 days", code: "standard" },
+        type: {
+          label: "Standard",
+          description: "2–3 days",
+          code: "standard-lt",
+        },
         prices: [
-          { currency_code: "eur", amount: 10 },
-          { currency_code: "usd", amount: 10 },
-          { region_id: euRegion.id, amount: 10 },
-          { region_id: ltRegion.id, amount: 10 },
+          { currency_code: "eur", amount: 2.99 },
+          {
+            currency_code: "eur",
+            amount: 0,
+            rules: [{ attribute: "item_total", operator: "gte", value: 30 }],
+          },
+        ],
+        rules: [
+          { attribute: "enabled_in_store", operator: "eq", value: "true" },
+          { attribute: "is_return", operator: "eq", value: "false" },
+        ],
+      },
+      {
+        name: "Standard Shipping EU",
+        price_type: "flat",
+        provider_id: "manual_manual",
+        service_zone_id: euServiceZone.id,
+        shipping_profile_id: shippingProfile.id,
+        type: {
+          label: "Standard",
+          description: "2–3 days",
+          code: "standard-eu",
+        },
+        prices: [
+          { currency_code: "eur", amount: 5.99 },
+          {
+            currency_code: "eur",
+            amount: 0,
+            rules: [{ attribute: "item_total", operator: "gte", value: 60 }],
+          },
         ],
         rules: [
           { attribute: "enabled_in_store", operator: "eq", value: "true" },
@@ -225,14 +273,19 @@ export default async function seedDemoData({ container }: ExecArgs) {
   });
 
   logger.info("Publishable API key");
-  const { result: apiKeys } = await createApiKeysWorkflow(container).run({
-    input: {
-      api_keys: [{ title: "Webshop", type: "publishable", created_by: "" }],
-    },
+  const { data: publishableApiKeys } = await query.graph({
+    entity: "api_key",
+    fields: ["id", "title", "type"],
+    filters: { type: "publishable" },
   });
 
+  const publishableApiKey = publishableApiKeys[0];
+  if (!publishableApiKey) {
+    throw new Error("No publishable API key found to link to the sales channel");
+  }
+
   await linkSalesChannelsToApiKeyWorkflow(container).run({
-    input: { id: apiKeys[0].id, add: [salesChannel.id] },
+    input: { id: publishableApiKey.id, add: [salesChannel.id] },
   });
 
   logger.info("Categories");

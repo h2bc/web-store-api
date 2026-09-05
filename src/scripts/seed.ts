@@ -299,6 +299,10 @@ export default async function seedDemoData({ container }: ExecArgs) {
           handle: "print-on-demand",
           is_active: true,
           rank: 0,
+          metadata: {
+            alert:
+              "This item is printed on demand. It make take 7-14 days to ship your oder",
+          },
         },
         { name: "BEANIES", handle: "bean", is_active: true, rank: 1 },
         { name: "BELTS", handle: "belts", is_active: true, rank: 2 },
